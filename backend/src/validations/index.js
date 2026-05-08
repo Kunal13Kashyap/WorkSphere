@@ -1,4 +1,4 @@
-// this folder contains validation Schemas
+// this folder contains zod validation Schemas
 
 import { loginSchema, signupSchema, signupWithInviteSchema } from "./auth.validation.js";
 import { inviteSchema } from "./organization.validation.js";

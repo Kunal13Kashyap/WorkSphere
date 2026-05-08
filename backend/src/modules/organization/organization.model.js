@@ -3,7 +3,11 @@ import mongoose from "mongoose";
 const Schema = mongoose.Schema;
 
 const OrgSchema = new Schema({
-    name: String,
+    name: {
+        type: String,
+        required: true,
+        trim: true
+    },
     createdBy: {
         type: Schema.Types.ObjectId,
         ref: "User",

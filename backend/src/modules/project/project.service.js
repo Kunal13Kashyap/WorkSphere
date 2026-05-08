@@ -1,8 +1,9 @@
 import ProjectModel from "./project.model.js";
 import AppError from "../../utils/appError.js";
 import { buildFilter } from "../../utils/queryBuilder.js";
+import { logAudit } from "../audit/audit.logger.js";
 
-export const projectPostService = async ({name, description, user}) => {
+export const projectPostService = async ({ name, description, user, ip }) => {
     const userId = user.userId;
     const orgId = user.orgId;
 
@@ -19,18 +20,26 @@ export const projectPostService = async ({name, description, user}) => {
             createdBy: userId
         });
 
+        await logAudit({
+            action: "PROJECT_CREATED",
+            actor: userId,
+            metadata: {
+                projectId: newProject._id,
+                orgId
+            },
+            status: "success",
+            ip
+        })
+
         return newProject;
 
     } catch (error) {
-        if (error.code === 11000) {
-            throw new AppError("Project with this name already exists", 400);
-        }
+        if (error.code === 11000) throw new AppError("Project with this name already exists", 400);
         throw error;
     }
 };
 
-export const projectGetService = async({orgId, page, limit, query}) => {
-
+export const projectGetService = async ({ orgId, page, limit, query}) => {
     if (!orgId) {
         throw new AppError("User is not part of any organization", 400);
     }
@@ -41,7 +50,6 @@ export const projectGetService = async({orgId, page, limit, query}) => {
         orgId,
         isDeleted: false
     }
-
     const filter = buildFilter(baseFilter, query, ["status", "ownerId"]);
 
     const [projects, total] = await Promise.all([
@@ -67,7 +75,7 @@ export const projectGetService = async({orgId, page, limit, query}) => {
     };
 };
 
-export const projectByidGetService = async({projectId, orgId}) => {
+export const projectByidGetService = async ({ projectId, orgId }) => {
     if (!orgId) {
         throw new AppError("User is not part of any organization", 400);
     }
@@ -75,14 +83,18 @@ export const projectByidGetService = async({projectId, orgId}) => {
         throw new AppError("Invalid Id",400);
     }
 
-    const getProject = await ProjectModel.findOne({_id: projectId, orgId, isDeleted: false});
+    const getProject = await ProjectModel.findOne({
+        _id: projectId, 
+        orgId, 
+        isDeleted: false
+    });
     if(!getProject){
         throw new AppError("Not found",404);
     }
     return getProject;
 };
 
-export const projectChangeService = async({projectId, orgId, detailObject}) => {
+export const projectChangeService = async ({ projectId, orgId, detailObject, updatedBy, ip }) => {
     if (!orgId) {
         throw new AppError("User is not part of any organization", 400);
     }
@@ -94,34 +106,92 @@ export const projectChangeService = async({projectId, orgId, detailObject}) => {
         throw new AppError("No fields to update",400);
     }
 
-    const updateProject = await ProjectModel.findOneAndUpdate({_id: projectId,orgId,isDeleted: false},{$set: detailObject},{new: true, runValidators: true});
-    if(!updateProject) {
-        throw new AppError("Project not found",404);
-    }
+    try {
+        const updateProject = await ProjectModel.findOneAndUpdate(
+            {
+                _id: projectId,
+                orgId,
+                isDeleted: false
+            },
+            {
+                $set: detailObject
+            },
+            {
+                new: true,
+                runValidators: true
+            }
+        );
 
-    return updateProject;
+        if (!updateProject) throw new AppError("Project not found",404);
+
+        await logAudit({
+            action: "PROJECT_UPDATED",
+            actor: updatedBy,
+            metadata: {
+                updatedDetails: detailObject,
+                projectId: updateProject._id,
+                orgId
+            },
+            status: "success",
+            ip
+        })
+
+        return updateProject;
+
+    } catch(error) {
+
+        if (error.code === 11000) {
+            throw new AppError("Project with this name already exists",400);
+        }
+
+        throw error;
+    }
 };
 
-export const projectDeleteService = async({projectId,orgId}) => {
+export const projectDeleteService = async ({ projectId, orgId, deletedBy, ip }) => {
     if (!orgId) {
         throw new AppError("User is not part of any organization", 400);
     }
     if(!projectId) {
         throw new AppError("Invalid Id",400);
     }
-    const deletedProject = await ProjectModel.findOneAndUpdate({_id: projectId, orgId, isDeleted: false},{$set: {isDeleted: true, deletedAt: new Date()}},{new: true, runValidators: true});
+    const deletedProject = await ProjectModel.findOneAndUpdate({
+        _id: projectId, 
+        orgId, 
+        isDeleted: false
+    },{
+        $set: {
+            isDeleted: true, 
+            deletedAt: new Date()}
+    },{
+        new: true, 
+        runValidators: true
+    });
 
     if(!deletedProject) throw new AppError("Project not found",404);
+
+    await logAudit({
+        action: "PROJECT_DELETED",
+        actor: deletedBy,
+        metadata: {
+            projectId,
+            orgId
+        },
+        status: "success",
+        ip
+    });
 
     return deletedProject;
 };
 
-export const deleteOldProjectsService = async() => {
-
+export const deleteOldProjectsService = async () => {
     const THIRTY_DAYS_AGO = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
     await ProjectModel.deleteMany({
     isDeleted: true,
-    deletedAt: { $exists: true, $lt: THIRTY_DAYS_AGO }
+    deletedAt: { 
+        $exists: true, 
+        $lt: THIRTY_DAYS_AGO
+        }
     });
 };

@@ -24,9 +24,14 @@ const AuditSchema = new Schema(
         },
         status: {
             type: String,
+            enum: ["success","failed"],
+            default: "failed",
             required: true
         },
-        ip: String
+        ip: {
+            type: String,
+            default: null
+        }
     },{
         timestamps: true
     }

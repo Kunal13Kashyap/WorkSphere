@@ -1,58 +1,92 @@
-import userModel from "./auth.model.js";
-import orgModel from "../organization/organization.model.js";
+import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
-import { generateToken } from "../../utils/token.js";
-import inviteModel from "../organization/invite.model.js";
+import mongoose from "mongoose";
+
+import UserModel from "./auth.model.js";
+import OrgModel from "../organization/organization.model.js";
+import InviteModel from "../organization/invite.model.js";
+import TokenModel from "./token.model.js";
+
 import AppError from "../../utils/appError.js";
+import { generateToken } from "../../utils/token.js";
+import { logAudit } from "../audit/audit.logger.js";
 
-export const signupService = async(email,password)=>{
-    const existingUser = await userModel.findOne({ email });
+export const signupService = async ({ email, password, ip }) => {
+    const normalizedEmail = email.toLowerCase();
+    if (!normalizedEmail || !normalizedEmail.includes("@") || normalizedEmail.startsWith("@") || normalizedEmail.endsWith("@")) throw new AppError("Invalid email", 400);
 
-    if(existingUser){
-        throw new AppError("User already exists, go to Login",409);
-    };
+    const existingUser = await UserModel.findOne({ email: normalizedEmail });
+    if(existingUser) throw new AppError("User already exists, go to Login",409);
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const newUser = new userModel({
-        email: email,
-        password: hashedPassword,
-        role: "admin",
-    });
+    const session = await mongoose.startSession();
 
-    const name = newUser.email.split("@")[0];
+    let newUser;
 
-    const newOrg = new orgModel({
-        name: name,
-        createdBy: newUser._id,
-    });
+    try{
+        session.startTransaction();
 
-    newUser.belongsTo = newOrg._id;
+        newUser = new UserModel({
+            email: normalizedEmail,
+            password: hashedPassword,
+            role: "admin",
+        });
 
-    await newOrg.save();
-    await newUser.save();
+        const name = normalizedEmail.split("@")[0];
+
+        const newOrg = new OrgModel({ 
+            name,
+            createdBy: newUser._id
+        },);
+
+        newUser.belongsTo = newOrg._id;
+
+        await newUser.save({session});
+        await newOrg.save({session});
+        await session.commitTransaction();
+    } catch(error){
+        await session.abortTransaction();
+        if(error instanceof AppError){
+            throw error;
+        }
+        throw new AppError("Signup failed",500);
+    } finally {
+        session.endSession();
+    }
 
     const token = generateToken(newUser);
+
+    await logAudit({
+        action: "SIGNUP",
+        actor: newUser._id,
+        status: "success",
+        ip
+    })
 
     return token;
 }
 
-export const signupWithInvite = async(email,password,inviteId)=>{
+export const signupWithInvite = async ({ email, password, inviteId, ip }) => {
+    const normalizedEmail = email.toLowerCase().trim();
 
-    const existingUser = await userModel.findOne({ email });
+    const existingUser = await UserModel.findOne({ 
+        email: normalizedEmail 
+    });
     if (existingUser) throw new AppError("User already exists",409);
 
-    const isInvited = await inviteModel.findById(inviteId);
-    if(!isInvited) throw new AppError("Invalid invite",400);
+    if (!mongoose.Types.ObjectId.isValid(inviteId)) throw new AppError("Invalid invite ID",400);
 
-    if(isInvited.status !== "pending") throw new AppError("Invite already used",400);
+    const isInvited = await InviteModel.findById(inviteId);
 
-    if(isInvited.email !== email) throw new AppError("Email mismatch",400);
+    if (!isInvited) throw new AppError("Invalid or already used invite", 400);
+    if (isInvited.status !== "pending") throw new AppError("Invite already used",400);
+    if(isInvited.email.toLowerCase() !== normalizedEmail) throw new AppError("Email mismatch",400);
 
     const hashedPassword = await bcrypt.hash(password,10);
 
-    const invitedUser = new userModel({
-        email: email,
+    const invitedUser = new UserModel({
+        email: normalizedEmail,
         password: hashedPassword,
         role: isInvited.role,
         belongsTo: isInvited.orgId
@@ -65,6 +99,62 @@ export const signupWithInvite = async(email,password,inviteId)=>{
 
     const token = generateToken(invitedUser);
 
+    await logAudit({
+        action: "SIGNUP_WITH_INVITE",
+        actor: invitedUser._id,
+        metadata: {
+            invitedBy: isInvited.invitedBy,
+            orgId: isInvited.orgId
+        },
+        status: "success",
+        ip
+    })
+
     return token;
 
+}
+
+export const loginService = async ({ email, password, ip }) => {
+    const normalizedEmail = email.toLowerCase();
+
+    const user = await UserModel.findOne({ email: normalizedEmail });
+    if(!user) throw new AppError("Invalid email or password",401);
+    
+    const isPasswordValid = await bcrypt.compare(password,user.password);
+    if(!isPasswordValid) throw new AppError("Invalid email or password",401);
+
+    const token = generateToken(user);
+
+    await logAudit({
+        action: "LOGIN",
+        actor: user._id,
+        status: "success",
+        ip
+    })
+
+    return token;
+}
+
+export const logoutService = async ({ token, decoded, ip })=>{
+    await TokenModel.updateOne(
+        { token },
+        { 
+            $setOnInsert: { 
+                token, 
+                expiresAt: new Date(decoded.exp * 1000) 
+            } 
+        },
+        { upsert: true }
+    );
+    const user = decoded;
+
+    await logAudit({
+        action: "LOGOUT",
+        actor: decoded._id,
+        metadata: {
+            blacklistToken: token
+        },
+        status: "success",
+        ip
+    })
 }

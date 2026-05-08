@@ -1,26 +1,24 @@
-import { inviteService, roleUpdateService } from "./organization.service.js";
-import AppError from "../../utils/appError.js";
-import UserModel from "../auth/auth.model.js";
-import { ROLES } from "../../utils/roles.js";
 import mongoose from "mongoose";
 
-export const inviteController = async(req,res,next)=>{
+import { inviteService, roleUpdateService } from "./organization.service.js";
+import { ROLES } from "../../utils/roles.js";
+import AppError from "../../utils/appError.js";
 
+export const inviteController = async ( req, res, next ) => {
     try{
-
-        if(req.user.role !== "admin"){
-            throw new AppError("Unauthorized",403);
-        };
-
         const userEmail = req.body.email;
         const orgId = req.user.orgId;
     
-        const inviteId = await inviteService(userEmail,orgId);
-        return res.status(200).json({
+        const inviteId = await inviteService({
+            userEmail,
+            orgId,
+            invitedBy: req.user.userId,
+            ip: req.ip
+        });
+        return res.status(201).json({
             message: "Invited Successfully",
             inviteId: inviteId
         });
-
     }
     catch(error){
         next(error);
@@ -28,11 +26,10 @@ export const inviteController = async(req,res,next)=>{
     
 }
 
-export const roleUpdateController = async(req,res,next)=>{
-
+export const roleUpdateController = async ( req, res, next ) => {
     try{
         const { userId } = req.params;
-        const adminOrgId = req.orgId;
+        const adminOrgId = req.user.orgId;
         
         if(!mongoose.Types.ObjectId.isValid(userId)) throw new AppError("Invalid UserId",400);
 
@@ -40,10 +37,19 @@ export const roleUpdateController = async(req,res,next)=>{
 
         if (!Object.values(ROLES).includes(role)) throw new AppError("Invalid role",400);
 
-        const updateUserRole = await roleUpdateService({targetUserId: userId, adminOrgId, userUpdatedRole: role});
+        if(userId.toString() === req.user.userId.toString() && role !== ROLES.ADMIN) throw new AppError("Admin cannot change own role",400);
+
+        const updateUserRole = await roleUpdateService({
+            targetUserId: userId, 
+            adminOrgId, 
+            userUpdatedRole: role, 
+            updatedBy: req.user.userId, 
+            ip: req.ip, 
+            oldRole: role
+        });
 
         return res.status(200).json({
-            message: "User's role has been updated",
+            message: "Role updated successfully",
             userId: updateUserRole._id,
             role: updateUserRole.role
         })

@@ -3,7 +3,7 @@ import mongoose from "mongoose"
 const Schema = mongoose.Schema;
 const ObjectId = Schema.Types.ObjectId;
 
-const taskSchema = new Schema({
+const TaskSchema = new Schema({
     title: {
         type: String,
         required: true,
@@ -43,18 +43,24 @@ const taskSchema = new Schema({
         type: ObjectId,
         ref: "User",
         required: true
+    },
+    startedAt: {
+        type: Date
+    },
+    completedAt: {
+        type: Date
     }
 },{
     timestamps: true
 });
 
-taskSchema.index({ assignedTo: 1 });
-taskSchema.index({ createdBy: 1 });
-taskSchema.index({ assignedTo: 1, status: 1 });
-taskSchema.index({ projectId: 1, status: 1 });
-taskSchema.index({ title: 1, projectId: 1 }, { unique: true });
-taskSchema.index({ orgId: 1, projectId: 1, isArchived: 1 });
+TaskSchema.index({ assignedTo: 1 });
+TaskSchema.index({ createdBy: 1 });
+TaskSchema.index({ orgId: 1, assignedTo: 1 });
+TaskSchema.index({ assignedTo: 1, status: 1 });
+TaskSchema.index({ projectId: 1, status: 1 });
+TaskSchema.index({ orgId: 1, projectId: 1, isArchived: 1 });
 
-const taskModel = mongoose.model("Task",taskSchema);
+const TaskModel = mongoose.model("Task",TaskSchema);
 
-export default taskModel;
+export default TaskModel;

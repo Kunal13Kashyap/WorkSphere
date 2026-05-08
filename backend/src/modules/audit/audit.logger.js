@@ -1,6 +1,6 @@
 import AuditModel from "./audit.model.js"
 
-export const logAudit = async ({ action, actor, target, metadata, status, ip }) => {
+export const logAudit = async ({ action, actor, target, metadata = {}, status, ip }) => {
     try{
         if(!action || !actor || !status){
             console.warn("Invalid audit log params");
@@ -11,7 +11,7 @@ export const logAudit = async ({ action, actor, target, metadata, status, ip }) 
             action,
             actor,
             target,
-            metadata = {},
+            metadata,
             status,
             ip
         });

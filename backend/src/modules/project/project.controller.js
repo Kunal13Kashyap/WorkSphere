@@ -2,31 +2,31 @@ import { projectPostService, projectGetService, projectByidGetService, projectCh
 import mongoose from "mongoose";
 import AppError from "../../utils/appError.js";
 
-export const projectPostController = async(req,res,next) => {
-
+export const projectPostController = async ( req, res, next ) => {
     try{
         const { name, description } = req.body;
-        const createdProject = await projectPostService({name,description, user: req.user});
+        const createdProject = await projectPostService({
+            name,
+            description, 
+            user: req.user, 
+            ip: req.ip
+        });
 
         res.status(201).json({
             message: "Project created successfully",
             data: createdProject
         });
-
     }
     catch(error){
         next(error);
     };
-
 };
 
-export const projectGetController = async(req,res,next) => {
-
+export const projectGetController = async ( req, res, next ) => {
     try{
         const orgId = req.user.orgId;
 
         let { page = 1, limit = 10 } = req.query;
-
         page = parseInt(page);
         limit = parseInt(limit);
 
@@ -47,13 +47,12 @@ export const projectGetController = async(req,res,next) => {
             data: projects.data,
             pagination: projects.pagination
         });
-
     }catch(error){
         next(error);
     }
 };
 
-export const projectByidGetController = async(req,res,next) => {
+export const projectByidGetController = async ( req, res, next ) => {
     try{
         const projectId = req.params.projectId;
         const orgId = req.user.orgId;
@@ -72,7 +71,7 @@ export const projectByidGetController = async(req,res,next) => {
     }
 };
 
-export const projectChangeController = async(req, res, next) => {
+export const projectChangeController = async ( req, res, next ) => {
     try {
         const { name, description } = req.body;
         const projectId = req.params.projectId;
@@ -82,42 +81,36 @@ export const projectChangeController = async(req, res, next) => {
             throw new AppError("Invalid project ID", 400);
         }
 
-        const isValidString = (value) =>
-        typeof value === "string" && value.trim() !== "";
+        const hasName = name !== undefined;
+        const hasDescription = description !== undefined;
 
-        if (!isValidString(name) && !isValidString(description)) {
-            throw new AppError("At least one valid field is required",400);
-        }
-
-        if (name !== undefined && !isValidString(name)) {
-            throw new AppError("Name can't be empty",400);
-        }
-
-        if (description !== undefined && !isValidString(description)) {
-            throw new AppError("Description can't be empty",400);
-        }
+        if (!hasName && !hasDescription) throw new AppError("At least one field is required",400);
+        if (hasName && (typeof name !== "string" || name.trim() === "")) throw new AppError("Name can't be empty",400);
+        if (hasDescription && typeof description !== "string") throw new AppError("Description must be a string",400);
 
         const detailObject = {};
-        if (name !== undefined) detailObject.name = name.trim();
-        if (description !== undefined) detailObject.description = description.trim();
+
+        if (hasName) detailObject.name = name.trim();
+        if (hasDescription) detailObject.description = description.trim();
 
         const updateProject = await projectChangeService({
             projectId,
             orgId,
-            detailObject
+            detailObject,
+            updatedBy: req.user.userId,
+            ip: req.ip
         });
 
         return res.status(200).json({
             message: `Project: ${projectId} updated successfully`,
             project: updateProject
         });
-
     } catch (error) {
         next(error);
     }
 };
 
-export const projectDeleteController = async(req,res,next) => {
+export const projectDeleteController = async ( req, res, next ) => {
     try{
         const projectId = req.params.projectId;
         const orgId = req.user.orgId;
@@ -126,7 +119,12 @@ export const projectDeleteController = async(req,res,next) => {
             throw new AppError("Invalid project ID", 400);
         }
 
-        const deleteProject = await projectDeleteService({projectId,orgId});
+        const deleteProject = await projectDeleteService({
+            projectId,
+            orgId, 
+            deletedBy: req.user.userId, 
+            ip: req.ip
+        });
 
         res.status(200).json({
             message: `Project: ${projectId} deleted successfully`,

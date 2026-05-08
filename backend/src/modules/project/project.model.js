@@ -3,7 +3,7 @@ import mongoose from "mongoose"
 const Schema = mongoose.Schema
 const ObjectId = Schema.Types.ObjectId
 
-const projectSchema = new Schema({
+const ProjectSchema = new Schema({
     name: {
         type: String,
         required: true,
@@ -14,7 +14,8 @@ const projectSchema = new Schema({
     description: {
         type: String,
         default: "",
-        maxlength: 500
+        maxlength: 500,
+        trim: true
     },
     orgId: {
         type: ObjectId,
@@ -39,14 +40,18 @@ const projectSchema = new Schema({
     isDeleted: {
         type: Boolean,
         default: false,
+    },
+    deletedAt: {
+        type: Date,
+        default: null
     }
 },{
     timestamps: true
 });
 
-projectSchema.index({ orgId: 1, isDeleted: 1, createdAt: -1 });
-projectSchema.index({ orgId: 1, name: 1 },{ unique: true, partialFilterExpression: { isDeleted: false } });
+ProjectSchema.index({ orgId: 1, isDeleted: 1, createdAt: -1 });
+ProjectSchema.index({ orgId: 1, name: 1 },{ unique: true, partialFilterExpression: { isDeleted: false } });
 
-const projectModel = mongoose.model("Project",projectSchema);
+const ProjectModel = mongoose.model("Project",ProjectSchema);
 
-export default projectModel;
+export default ProjectModel;
