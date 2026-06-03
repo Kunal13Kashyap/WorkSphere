@@ -11,12 +11,22 @@ import AppError from "../../utils/appError.js";
 import { generateToken } from "../../utils/token.js";
 import { logAudit } from "../audit/audit.logger.js";
 
-export const signupService = async ({ email, password, ip }) => {
-    const normalizedEmail = email.toLowerCase();
+export const signupService = async ({ email, password, orgName, ip }) => {
+    const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail || !normalizedEmail.includes("@") || normalizedEmail.startsWith("@") || normalizedEmail.endsWith("@")) throw new AppError("Invalid email", 400);
+
+    if(!orgName || orgName.trim().length < 3) throw new AppError("Organization name required",400);
+    const normalizedOrgName = orgName.trim().toLowerCase();
+
+    const existingOrg = await OrgModel.findOne({
+        name: normalizedOrgName
+    });
+    if(existingOrg) throw new AppError("Organization already exists",409);
 
     const existingUser = await UserModel.findOne({ email: normalizedEmail });
     if(existingUser) throw new AppError("User already exists, go to Login",409);
+
+    if(!password || password.length < 8) throw new AppError("Password is required",400);
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -33,10 +43,8 @@ export const signupService = async ({ email, password, ip }) => {
             role: "admin",
         });
 
-        const name = normalizedEmail.split("@")[0];
-
         const newOrg = new OrgModel({ 
-            name,
+            name: normalizedOrgName,
             createdBy: newUser._id
         },);
 

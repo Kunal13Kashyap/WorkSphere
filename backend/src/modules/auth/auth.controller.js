@@ -24,6 +24,7 @@ export const signupController = async ( req, res, next ) => {
         const token = await signupService({
             email: req.body.email, 
             password: req.body.password,
+            orgName: req.body.orgName,
             ip: req.ip
         });
         

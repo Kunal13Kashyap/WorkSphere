@@ -6,7 +6,8 @@ const OrgSchema = new Schema({
     name: {
         type: String,
         required: true,
-        trim: true
+        trim: true,
+        unique: true
     },
     createdBy: {
         type: Schema.Types.ObjectId,
