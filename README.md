@@ -10,53 +10,96 @@
   <img src="https://img.shields.io/badge/database-mongodb-brightgreen?style=for-the-badge"/>
 </p>
 
----
-
-## 🚧 Project Status
-
-⚠️ **This project is currently under active development.**
-
-The backend foundation and core infrastructure are being built step-by-step.
-Features, architecture documentation, and full system capabilities will be added as development progresses.
+A multi-tenant project and task management platform designed for teams and organizations. WorkSphere enables secure collaboration through organization-based workspaces, role-based access control, project management, and task assignment workflows.
 
 ---
 
-## 📌 About
+## 🔗 Live Links
 
-**WorkSphere** is a backend-focused system being developed to practice building a **production-style application backend** using modern architecture and engineering practices.
-
-The focus of the project is not just functionality, but also **clean architecture, security, and scalability**.
-
----
-
-## 🎯 Why This Project
-
-This project is being built to:
-
-* Practice **real-world backend development**
-* Implement **secure authentication & authorization**
-* Design **clean and modular backend architecture**
-* Build **scalable APIs used in production systems**
+- Backend API: https://worksphere-kcig.onrender.com/api/v1/
+- Frontend: 🚧 Under Development
 
 ---
 
-## ⚙️ Development Approach
+## 📌 Project Status
 
-The project is being developed incrementally with focus on:
+✅ Backend Complete & Deployed
 
-* Modular backend architecture
-* Secure authentication systems
-* Role-based access control
-* Robust validation and error handling
-* Clean and maintainable code structure
+🚧 Frontend Development In Progress
 
----
+## ✨ Features
 
-## 🔧 Development Progress
+### Authentication & Security
+- JWT-based Authentication
+- Password Hashing with bcrypt
+- Protected Routes & Middleware
+- Role-Based Access Control (Admin, Manager, Member)
 
-🚧 Backend foundation currently in progress.
+### Organization Management
+- Multi-Tenant Organization Architecture
+- Organization Creation & Membership Management
+- User Onboarding & Role Assignment
 
-More updates, features, and documentation will be added soon.
+### Project Management
+- Create, Update, Delete Projects
+- Organization-Scoped Project Access
+- Ownership & Permission Checks
+
+### Task Management
+- Create, Update, Delete Tasks
+- Task Assignment to Team Members
+- Task Status Workflow
+- Business Rule Enforcement
+
+### API Quality
+- Zod Request Validation
+- Centralized Error Handling
+- Consistent API Responses
+- Pagination & Filtering
+- RESTful API Design
+
+## 🛠 Tech Stack
+
+### Backend
+- Node.js
+- Express.js
+- MongoDB
+- Mongoose
+- JWT
+- bcrypt
+- Zod
+
+### Frontend (In Development)
+- React.js
+- Tailwind CSS
+- React Router
+- Axios
+
+### Deployment
+- Render
+
+## 🎯 Current Development
+
+Currently building:
+
+- Authentication UI
+- Protected Routes
+- Dashboard Layout
+- Project Management Interface
+- Task Management Interface
+- Role-Based UI
+- Responsive Design
+
+## 📈 Learning Objectives
+
+This project focuses on:
+
+- Building scalable REST APIs
+- Designing multi-tenant architectures
+- Implementing secure authentication and authorization
+- Applying RBAC in real-world systems
+- Structuring maintainable backend applications
+- Preparing for production-grade full-stack development
 
 ---
 
