@@ -140,7 +140,10 @@ export const loginService = async ({ email, password, ip }) => {
         ip
     })
 
-    return token;
+    return {
+        token,
+        userId: user._id
+    };
 }
 
 export const logoutService = async ({ token, decoded, ip })=>{

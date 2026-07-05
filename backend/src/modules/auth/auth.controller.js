@@ -41,7 +41,7 @@ export const signupController = async ( req, res, next ) => {
 
 export const loginController = async ( req, res, next ) => {
     try{
-        const token = await loginService({
+        const { token, userId} = await loginService({
             email: req.body.email,
             password: req.body.password,
             ip: req.ip
@@ -50,7 +50,8 @@ export const loginController = async ( req, res, next ) => {
         return res.status(200).json({
             success: true,
             message: "Token generated successfully",
-            token
+            token,
+            userId
         });
 
     }catch(err){
