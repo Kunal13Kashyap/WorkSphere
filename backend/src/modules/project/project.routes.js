@@ -4,7 +4,7 @@ import { authorizeRoles } from "../../middlewares/rbac.middleware.js";
 import { ROLES } from "../../utils/roles.js";
 import { projectPostController, projectGetController, projectByidGetController, projectChangeController, projectDeleteController } from "./project.controller.js";
 import { validate } from "../../middlewares/validate.middleware.js";
-import { projectSchema } from "../../validations/project.validation.js";
+import { projectSchema, projectUpdateSchema } from "../../validations/project.validation.js";
 
 const router = express.Router();
 
@@ -14,7 +14,7 @@ router.get("/",auth,authorizeRoles(ROLES.ADMIN,ROLES.MANAGER,ROLES.MEMBER),proje
 
 router.get("/:projectId",auth,authorizeRoles(ROLES.ADMIN,ROLES.MANAGER,ROLES.MEMBER),projectByidGetController);
 
-router.patch("/:projectId",auth,authorizeRoles(ROLES.ADMIN,ROLES.MANAGER),projectChangeController);
+router.patch("/:projectId",auth,authorizeRoles(ROLES.ADMIN,ROLES.MANAGER),validate(projectUpdateSchema),projectChangeController);
 
 router.delete("/:projectId",auth,authorizeRoles(ROLES.ADMIN),projectDeleteController);
 

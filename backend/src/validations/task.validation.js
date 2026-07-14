@@ -8,3 +8,9 @@ export const taskSchema = z.object({
     projectId: objectId,
     assignedTo: objectId
 });
+
+export const taskUpdateSchema = z.object({
+    title: z.string().trim().min(4).max(50).optional(),
+    description: z.string().max(500).optional(),
+    assignedTo: objectId.optional()
+});
